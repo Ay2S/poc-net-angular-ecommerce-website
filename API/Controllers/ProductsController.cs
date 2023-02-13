@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using API.Dtos;
 using API.Errors;
+using API.Helpers;
 using AutoMapper;
 using Core.Entities;
 using Core.Interfaces;
-using Infrastructure.Data;
+using Core.Specifications.ProductSpecs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,10 +31,22 @@ namespace API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<ProductDto>>> GetProducts()
+        public async Task<ActionResult<Pagination<ProductDto>>> GetProducts(
+            [FromQuery] ProductSpecParams productParams) // Additionnal optional params
+            // [FromQuery]: Assign the params properties from values given in the request string
         {
-            var products = await _productsRepo.ListAsync(new ProductsSpecification());
-            return Ok(_mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductDto>>(products));
+            var products = await _productsRepo.ListAsync(new ProductSpecification(productParams));
+            var productsDto = _mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductDto>>(products);
+
+            int productsCount = await _productsRepo.CountAsync(new ProductSpecificationForCount(productParams));
+
+            return Ok(new Pagination<ProductDto>
+            {
+                PageIndex = productParams.PageIndex,
+                PageSize = productParams.PageSize,
+                Count = productsCount,
+                Data = productsDto
+            });
         }
 
         [HttpGet("{id}")]
@@ -41,7 +54,7 @@ namespace API.Controllers
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
-            var product = await _productsRepo.GetEntityWithSpec(new ProductsSpecification(id));
+            var product = await _productsRepo.GetEntityWithSpec(new ProductSpecification(id));
             if (product == null) return NotFound(new ApiResponse(404));
             return Ok(_mapper.Map<Product, ProductDto>(product));
         }
