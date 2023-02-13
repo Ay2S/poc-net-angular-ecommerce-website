@@ -11,3 +11,5 @@ Infrastructure/bin
 .vscode
 .vs
 API.UnitTest
+
+client/.angular
