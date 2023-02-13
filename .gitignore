@@ -10,3 +10,4 @@ Infrastructure/bin
 *.db
 .vscode
 .vs
+API.UnitTest
